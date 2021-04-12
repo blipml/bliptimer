@@ -1,4 +1,5 @@
-#! python3
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
 from datetime import datetime as dt, timedelta
 from time import time, sleep
@@ -13,36 +14,43 @@ class TimeParseException(Exception):
 
 class Timer(object):
 
-    def __init__(self, target=0, callback=None, sleep_time=SLEEP_TIME):
-        assert(callback is not None)
-
-        self.target = target
-        self.mul = [60*60, 60, 1][::-1]
-        self.callback = callback
+    def __init__(
+        self, target=0, sleep_time=SLEEP_TIME):
+        self.target = Timer.parse_time(sys.argv[1])
+        self.elapsed = 0
+        print(self.target)
         self.sleep_time = sleep_time
 
-    def parse_time(self, string):
+    @staticmethod
+    def parse_time(string):
+        mul = [60*60, 60, 1][::-1]
         components = string.split(':')[::-1]
 
-        if len(components) > len(self.mul):
+        if len(components) > len(mul):
             raise TimeParseException()
-        elif len(components) != len(self.mul):
-            self.mul = self.mul[:len(components)-len(self.mul)]
+        elif len(components) != len(mul):
+            mul = mul[:len(components)-len(mul)]
 
         _sum = 0
-        for m, c in zip(self.mul, components):
+        for m, c in zip(mul, components):
             _sum += m*int(c)
         return _sum
 
-
     def start_timer(self):
-        target = self.parse_time(sys.argv[1]) + 1
         last = now = time()
 
-        while((now-last) < target):
+        while(self.elapsed < self.target):
+            self.elapsed = now-last
             sleep(self.sleep_time)
             now = time()
-            self.callback(target, now-last)
+            self.tick_callback()
+        self.end_callback()
+
+    def tick_callback(self):
+        pass
+    
+    def end_callback(self):
+        pass
 
 
 class AsyncTimer(Timer):
@@ -59,23 +67,39 @@ class PreemptAsyncTimer(AsyncTimer):
     
     def cancel(self):
         # maybe we don't want this here :)
-        self.task.cancel()
+        # self.task.cancel()
+        pass
 
 
-def printcback(target, elapsed):
-    outfile = '/home/ocean/workspace/blip/discordtimer'
-    header = 'pomod🍅w🍅'
-    output = "{}\n\r◇{}◇".format(
-        header, str(timedelta(seconds=round(target-elapsed))))
+class Pomodowo(Timer):
 
-    with open(outfile, 'w') as f:
-        f.write(output)
-    print(output)
+    def __init__(self, *args, **kwargs):
+        super(Pomodowo, self).__init__(*args, **kwargs)
+
+    def tick_callback(self):
+        """
+            we can access tick level information here
+        """
+        outfile = './discordtimer'
+        header = 'pomod🍅w🍅'
+        output = "{}\n\r◇{}◇".format(header, str(
+                                    timedelta(seconds=round(
+                                        self.target-self.elapsed))))
+
+        with open(outfile, 'w') as f:
+            f.write(output)
+        print(output)
 
 
-# how do we even define a widget, class, method???
-def widget(target,elapsed):
-    pass
+class WaterTimer(Timer):
+
+    def __init__(self,*args, **kwargs):
+        super(WaterTimer, self).__init__(*args, **kwargs)
+    
+    def end_callback(self):
+        # control OBS scene?
+
+        pass
 
 
 if __name__ == '__main__':
@@ -83,5 +107,5 @@ if __name__ == '__main__':
         print("Pass me a target for the timer format [HH]:[mm]:ss")
         exit()
 
-    t = Timer(sys.argv[1], printcback)
+    t = Pomodowo(sys.argv[1])
     t.start_timer()
